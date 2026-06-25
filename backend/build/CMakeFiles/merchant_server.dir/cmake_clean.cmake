@@ -1,0 +1,42 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/merchant_server.dir/link.d"
+  "CMakeFiles/merchant_server.dir/src/config/app_config.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/config/app_config.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/controller/admine_controller.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/controller/admine_controller.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/controller/login_controller.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/controller/login_controller.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/controller/merchant_controller.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/controller/merchant_controller.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/database/dp_pool.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/database/dp_pool.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/main.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/main.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/models/log.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/models/log.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/models/order.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/models/order.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/models/product.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/models/product.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/models/role.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/models/role.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/models/store.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/models/store.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/models/user.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/models/user.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/router/api_router.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/router/api_router.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/service/admine_service.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/service/admine_service.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/service/login_servce.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/service/login_servce.cpp.o.d"
+  "CMakeFiles/merchant_server.dir/src/service/mechant_service.cpp.o"
+  "CMakeFiles/merchant_server.dir/src/service/mechant_service.cpp.o.d"
+  "merchant_server"
+  "merchant_server.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/merchant_server.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

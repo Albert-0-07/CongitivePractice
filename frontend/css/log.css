@@ -1,0 +1,46 @@
+/* ============================================================
+   商户管理系统 — Log Page Styles (supplementary)
+   ============================================================ */
+
+/* Log viewer specific enhancements */
+.log-detail-card {
+  max-width: 700px;
+}
+
+.log-detail-card .info-grid {
+  grid-template-columns: 80px 1fr;
+}
+
+.log-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  padding: 3px 10px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  border-radius: 10px;
+}
+
+.log-type-login   { background: var(--color-primary-bg); color: var(--color-primary); }
+.log-type-create  { background: var(--color-success-bg); color: var(--color-success); }
+.log-type-update  { background: var(--color-warning-bg); color: #d48806; }
+.log-type-delete  { background: var(--color-danger-bg); color: var(--color-danger); }
+.log-type-export  { background: var(--color-info-bg); color: var(--color-info); }
+.log-type-void    { background: #f0f0f0; color: var(--color-text-secondary); }
+
+/* Log table specific overrides */
+.log-table .cell-description {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Print overrides for log pages */
+@media print {
+  .log-detail-card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+}

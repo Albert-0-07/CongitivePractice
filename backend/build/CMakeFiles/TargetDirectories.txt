@@ -1,0 +1,7 @@
+/mnt/d/CS/PROFRAMMING/C++/CongitivePractice/backend/build/CMakeFiles/merchant_server.dir
+/mnt/d/CS/PROFRAMMING/C++/CongitivePractice/backend/build/CMakeFiles/edit_cache.dir
+/mnt/d/CS/PROFRAMMING/C++/CongitivePractice/backend/build/CMakeFiles/rebuild_cache.dir
+/mnt/d/CS/PROFRAMMING/C++/CongitivePractice/backend/build/CMakeFiles/list_install_components.dir
+/mnt/d/CS/PROFRAMMING/C++/CongitivePractice/backend/build/CMakeFiles/install.dir
+/mnt/d/CS/PROFRAMMING/C++/CongitivePractice/backend/build/CMakeFiles/install/local.dir
+/mnt/d/CS/PROFRAMMING/C++/CongitivePractice/backend/build/CMakeFiles/install/strip.dir

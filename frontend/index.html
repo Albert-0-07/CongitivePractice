@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商户管理系统</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/log.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       SPA SHELL (hidden until login completes)
+       ============================================================ -->
+  <div class="app-shell hidden" id="appShell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <span class="logo-icon">🏪</span>
+        <span class="logo-text">商户管理系统</span>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebarNav">
+        <!-- Populated by JS based on role -->
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebarUser" title="退出登录">
+          <div class="user-avatar" id="sidebarAvatar">👤</div>
+          <div>
+            <div class="user-name" id="sidebarUserName">管理员</div>
+            <div class="user-role" id="sidebarUserRole">商户</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <div class="breadcrumb" id="breadcrumb">
+          <span>🏠</span>
+          <span class="separator">›</span>
+          <span class="current" id="breadcrumbCurrent">商品管理</span>
+        </div>
+      </div>
+      <div class="top-bar-right">
+        <span class="text-muted font-sm" id="currentTime"></span>
+        <div class="top-bar-user" id="topBarUser" title="退出登录">
+          <span id="topBarUserName">管理员</span>
+          <span style="font-size:12px;">▼</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-area" id="mainContent">
+      <!-- Dynamic panels render here -->
+    </main>
+  </div>
+
+  <!-- ============================================================
+       MODAL OVERLAY (shared by all panels)
+       ============================================================ -->
+  <div class="modal-overlay hidden" id="modalOverlay">
+    <div class="modal" id="modalDialog">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">标题</h3>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Dynamic form content -->
+      </div>
+      <div class="modal-footer" id="modalFooter">
+        <button class="btn btn-default" id="modalCancel">取消</button>
+        <button class="btn btn-primary" id="modalSubmit">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Dialog -->
+  <div class="modal-overlay confirm-modal hidden" id="confirmOverlay">
+    <div class="modal">
+      <div class="confirm-body">
+        <div class="confirm-icon">⚠️</div>
+        <p id="confirmMessage">确定执行此操作吗？</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-default" id="confirmCancel">取消</button>
+        <button class="btn btn-danger" id="confirmOk">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ============================================================
+       SCRIPTS
+       ============================================================ -->
+  <script src="js/utils/requests.js"></script>
+  <script src="js/login.js"></script>
+  <script src="js/mercant.js"></script>
+  <script src="js/admine.js"></script>
+
+  <script>
+  /* ============================================================
+     APP BOOTSTRAP — UI Helpers, Router, Init
+     ============================================================ */
+  (function () {
+    'use strict';
+
+    /* =====================================================
+       APP.UI — Shared UI helpers
+       ===================================================== */
+
+    var UI = {
+      /* Show a modal dialog with a form body.
+         @param {string} title       — modal title
+         @param {string} bodyHTML    — HTML for modal-body
+         @param {Function} onSave   — called with form data when user clicks submit
+         @param {Object}   opts     — { wide: true, submitText: '保存' }
+      */
+      showModal: function (title, bodyHTML, onSave, opts) {
+        opts = opts || {};
+        var overlay = document.getElementById('modalOverlay');
+        var dialog = document.getElementById('modalDialog');
+
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalBody').innerHTML = bodyHTML;
+        document.getElementById('modalSubmit').textContent = opts.submitText || '确定';
+
+        if (opts.wide) {
+          dialog.classList.add('wide');
+        } else {
+          dialog.classList.remove('wide');
+        }
+
+        overlay.classList.remove('hidden');
+
+        var submitBtn = document.getElementById('modalSubmit');
+        var cancelBtn = document.getElementById('modalCancel');
+        var closeBtn = document.getElementById('modalClose');
+
+        function close() {
+          overlay.classList.add('hidden');
+          dialog.classList.remove('wide');
+          cleanup();
+        }
+
+        function cleanup() {
+          submitBtn.removeEventListener('click', submitHandler);
+          cancelBtn.removeEventListener('click', close);
+          closeBtn.removeEventListener('click', close);
+          overlay.removeEventListener('click', overlayClick);
+        }
+
+        function submitHandler() {
+          if (onSave) {
+            // 收集所有表单元素 — 有 <form> 或无 <form> 均支持
+            var data = {};
+            var els = document.getElementById('modalBody').querySelectorAll('input, select, textarea');
+            els.forEach(function (el) {
+              var key = el.name || el.id;
+              if (!key) return;
+              if (el.type === 'radio') {
+                if (el.checked) data[key] = el.value;
+              } else if (el.type === 'checkbox') {
+                if (!data[key]) data[key] = [];
+                if (el.checked) data[key].push(el.value);
+              } else {
+                data[key] = el.value;
+              }
+            });
+            // 回调可返回 false 阻止关闭 (用于校验失败)
+            if (onSave(data, close) !== false) close();
+          } else {
+            close();
+          }
+        }
+
+        function overlayClick(e) {
+          if (e.target === overlay) close();
+        }
+
+        submitBtn.addEventListener('click', submitHandler);
+        cancelBtn.addEventListener('click', close);
+        closeBtn.addEventListener('click', close);
+        overlay.addEventListener('click', overlayClick);
+
+        return close;
+      },
+
+      /* Show a confirmation dialog.
+         @param {string} message
+         @returns {Promise<boolean>}
+      */
+      showConfirm: function (message) {
+        return new Promise(function (resolve) {
+          var overlay = document.getElementById('confirmOverlay');
+          document.getElementById('confirmMessage').textContent = message;
+          overlay.classList.remove('hidden');
+
+          var okBtn = document.getElementById('confirmOk');
+          var cancelBtn = document.getElementById('confirmCancel');
+
+          function cleanup() {
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+          }
+
+          function onOk() {
+            overlay.classList.add('hidden');
+            cleanup();
+            resolve(true);
+          }
+
+          function onCancel() {
+            overlay.classList.add('hidden');
+            cleanup();
+            resolve(false);
+          }
+
+          okBtn.addEventListener('click', onOk);
+          cancelBtn.addEventListener('click', onCancel);
+        });
+      },
+
+      /* Show a toast notification.
+         @param {string} message
+         @param {string} type — 'success' | 'error' | 'warning' | 'info'
+         @param {number} duration — ms, default 3000
+      */
+      showToast: function (message, type, duration) {
+        type = type || 'info';
+        duration = duration || 3000;
+        var container = document.getElementById('toastContainer');
+
+        var icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+
+        var toast = document.createElement('div');
+        toast.className = 'toast toast-' + type;
+        toast.innerHTML = '<span class="toast-icon">' + (icons[type] || '') + '</span>' +
+                          '<span>' + message + '</span>' +
+                          '<button class="toast-close">✕</button>';
+
+        toast.querySelector('.toast-close').addEventListener('click', function () {
+          toast.classList.add('toast-removing');
+          setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+        });
+
+        container.appendChild(toast);
+
+        setTimeout(function () {
+          if (toast.parentNode) {
+            toast.classList.add('toast-removing');
+            setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+          }
+        }, duration);
+      },
+
+      /* Escape HTML entities */
+      escapeHtml: function (str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      },
+
+      /* Format a number as currency */
+      formatMoney: function (val) {
+        return '¥' + parseFloat(val).toFixed(2);
+      },
+
+      /* Generate a simple table row from array of values */
+      tableRow: function (cells, isHeader) {
+        var tag = isHeader ? 'th' : 'td';
+        return '<tr>' + cells.map(function (c) { return '<' + tag + '>' + (c || '') + '</' + tag + '>'; }).join('') + '</tr>';
+      }
+    };
+
+    /* =====================================================
+       APP.ROUTER — Simple panel router
+       ===================================================== */
+
+    var Router = {
+      panels: {},
+      currentPanel: null,
+      currentSection: null,
+
+      /* Register a panel handler
+         @param {string}   panelId  — e.g. 'product-categories'
+         @param {Function} handler  — function(container) that renders the panel
+         @param {string}   section  — section label for breadcrumb
+         @param {string}   label    — display name for breadcrumb
+      */
+      register: function (panelId, handler, section, label) {
+        this.panels[panelId] = {
+          handler: handler,
+          section: section || '',
+          label: label || panelId
+        };
+      },
+
+      /* Navigate to a panel */
+      navigate: function (panelId, params) {
+        var panel = this.panels[panelId];
+        if (!panel) {
+          console.warn('Panel not found:', panelId);
+          return;
+        }
+
+        // Update sidebar active state
+        var allItems = document.querySelectorAll('.nav-item');
+        allItems.forEach(function (item) { item.classList.remove('active'); });
+        var activeItem = document.querySelector('[data-panel="' + panelId + '"]');
+        if (activeItem) activeItem.classList.add('active');
+
+        // Update breadcrumb
+        document.getElementById('breadcrumbCurrent').textContent = panel.label;
+
+        // Render panel
+        var container = document.getElementById('mainContent');
+        container.innerHTML = '';
+        if (panel.handler.render) {
+          panel.handler.render(container, params);
+        }
+
+        this.currentPanel = panelId;
+        container.scrollTop = 0;
+      }
+    };
+
+    /* =====================================================
+       SIDEBAR NAVIGATION BUILDER
+       ===================================================== */
+
+    function buildSidebar(role) {
+      var nav = document.getElementById('sidebarNav');
+      var sections = [];
+
+      // Merchant sections
+      sections.push({
+        title: '📦 商品管理',
+        items: [
+          { id: 'product-categories', icon: '📂', label: '商品分类' },
+          { id: 'product-info',      icon: '📋', label: '商品信息' }
+        ]
+      });
+      sections.push({
+        title: '📢 营销管理',
+        items: [
+          { id: 'promotions', icon: '🎁', label: '促销管理' }
+        ]
+      });
+      sections.push({
+        title: '🏬 门店管理',
+        items: [
+          { id: 'stores',         icon: '🏪', label: '门店管理' },
+          { id: 'service-areas',  icon: '📍', label: '服务区域' },
+          { id: 'store-products', icon: '🏷️',  label: '注册商品' }
+        ]
+      });
+      sections.push({
+        title: '📊 数据统计',
+        items: [
+          { id: 'statistics', icon: '📈', label: '数据统计' }
+        ]
+      });
+      sections.push({
+        title: '📋 订单管理',
+        items: [
+          { id: 'orders', icon: '📝', label: '订单列表' }
+        ]
+      });
+      sections.push({
+        title: '👥 会员管理',
+        items: [
+          { id: 'members', icon: '👤', label: '会员列表' }
+        ]
+      });
+
+      // Admin-only sections
+      if (role === 'admin') {
+        sections.push({
+          title: '⚙️ 系统管理',
+          items: [
+            { id: 'admin-users',       icon: '👨‍💼', label: '用户管理' },
+            { id: 'admin-permissions', icon: '🔐', label: '权限管理' },
+            { id: 'admin-logs',        icon: '📜', label: '操作日志' }
+          ]
+        });
+      }
+
+      var html = '';
+      sections.forEach(function (sec) {
+        html += '<div class="nav-section">';
+        html += '<div class="nav-section-title">' + sec.title + '</div>';
+        sec.items.forEach(function (item) {
+          html += '<div class="nav-item" data-panel="' + item.id + '">';
+          html += '<span class="nav-icon">' + item.icon + '</span>';
+          html += '<span>' + item.label + '</span>';
+          html += '</div>';
+        });
+        html += '</div>';
+      });
+
+      nav.innerHTML = html;
+
+      // Attach click handlers
+      nav.querySelectorAll('.nav-item').forEach(function (item) {
+        item.addEventListener('click', function () {
+          var panelId = this.getAttribute('data-panel');
+          Router.navigate(panelId);
+        });
+      });
+    }
+
+    /* =====================================================
+       REGISTER PANELS
+       ===================================================== */
+
+    function registerPanels() {
+      var R = Router;
+      var M = App.Merchant;
+      var A = App.Admin;
+
+      if (M) {
+        if (M.Categories)    R.register('product-categories', M.Categories,    '商品管理', '商品分类');
+        if (M.Products)      R.register('product-info',       M.Products,      '商品管理', '商品信息');
+        if (M.Promotions)    R.register('promotions',         M.Promotions,    '营销管理', '促销管理');
+        if (M.Stores)        R.register('stores',             M.Stores,        '门店管理', '门店管理');
+        if (M.ServiceAreas)  R.register('service-areas',      M.ServiceAreas,  '门店管理', '服务区域');
+        if (M.StoreProducts) R.register('store-products',     M.StoreProducts, '门店管理', '注册商品');
+        if (M.Statistics)    R.register('statistics',         M.Statistics,    '数据统计', '数据统计');
+        if (M.Orders)        R.register('orders',             M.Orders,        '订单管理', '订单列表');
+        if (M.Members)       R.register('members',            M.Members,       '会员管理', '会员列表');
+      }
+
+      if (A) {
+        if (A.Users)        R.register('admin-users',       A.Users,        '系统管理', '用户管理');
+        if (A.Permissions)  R.register('admin-permissions', A.Permissions,  '系统管理', '权限管理');
+        if (A.Logs)         R.register('admin-logs',        A.Logs,         '系统管理', '操作日志');
+      }
+    }
+
+    /* =====================================================
+       CLOCK
+       ===================================================== */
+
+    function updateClock() {
+      var now = new Date();
+      var str = now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0') + ' ' +
+                String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0') + ':' +
+                String(now.getSeconds()).padStart(2, '0');
+      var el = document.getElementById('currentTime');
+      if (el) el.textContent = str;
+    }
+
+    /* =====================================================
+       INIT — Entry point after login
+       ===================================================== */
+
+    window._onLoginSuccess = function (user) {
+      // Show the app shell
+      var shell = document.getElementById('appShell');
+      shell.classList.remove('hidden');
+
+      // Build sidebar based on role
+      buildSidebar(user.role);
+
+      // Update user info display
+      document.getElementById('sidebarAvatar').textContent = user.avatar || '👤';
+      document.getElementById('sidebarUserName').textContent = user.realName || user.username;
+      document.getElementById('sidebarUserRole').textContent = user.role === 'admin' ? '管理员' : '商户';
+      document.getElementById('topBarUserName').textContent = user.realName || user.username;
+
+      // Logout handlers
+      var logoutFn = function () {
+        App.Auth.logout();
+        location.reload();
+      };
+      document.getElementById('sidebarUser').addEventListener('click', function () {
+        UI.showConfirm('确定要退出登录吗？').then(function (ok) {
+          if (ok) logoutFn();
+        });
+      });
+      document.getElementById('topBarUser').addEventListener('click', function () {
+        UI.showConfirm('确定要退出登录吗？').then(function (ok) {
+          if (ok) logoutFn();
+        });
+      });
+
+      // Register panel handlers
+      registerPanels();
+
+      // Navigate to default panel
+      var defaultPanel = 'product-categories';
+      Router.navigate(defaultPanel);
+
+      // Start clock
+      updateClock();
+      setInterval(updateClock, 10000);
+    };
+
+    // Expose UI and Router
+    App.UI = UI;
+    App.Router = Router;
+
+    /* =====================================================
+       BOOT — Check auth, show login or app
+       ===================================================== */
+    if (App.Auth.isLoggedIn()) {
+      var user = App.Auth.getUser();
+      if (user) {
+        window._onLoginSuccess(user);
+      } else {
+        App.Auth.logout();
+        App.Auth.renderLoginPage();
+      }
+    } else {
+      App.Auth.renderLoginPage();
+    }
+  })();
+  </script>
+</body>
+</html>
